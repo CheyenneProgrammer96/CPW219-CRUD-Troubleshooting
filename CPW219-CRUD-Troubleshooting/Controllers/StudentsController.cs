@@ -1,5 +1,7 @@
-﻿using CPW219_CRUD_Troubleshooting.Models;
+﻿using CPW219_CRUD_Troubleshooting.Data;
+using CPW219_CRUD_Troubleshooting.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CPW219_CRUD_Troubleshooting.Controllers
 {
@@ -12,10 +14,13 @@ namespace CPW219_CRUD_Troubleshooting.Controllers
             context = dbContext;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            List<Student> products = StudentDb.GetStudents(context);
-            return View();
+            List<Student> students = await (from student in context.Students
+                                            select student).ToListAsync();
+            
+            
+            return View(students);
         }
 
         public IActionResult Create()
@@ -24,56 +29,90 @@ namespace CPW219_CRUD_Troubleshooting.Controllers
         }
 
         [HttpPost]
-        public IActionResult Create(Student p)
+        public async Task<IActionResult> Create(Student stu)
         {
             if (ModelState.IsValid)
             {
-                StudentDb.Add(p, context);
-                ViewData["Message"] = $"{p.Name} was added!";
+                context.Students.Add(stu);
+                await context.SaveChangesAsync();
+
+                ViewData["Message"] = $"{stu.Name} was added successfully!";
                 return View();
             }
 
             //Show web page with errors
-            return View(p);
+            return View(stu);
         }
 
-        public IActionResult Edit(int id)
+        public async Task<IActionResult> Edit(int id)
         {
             //get the product by id
-            Student p = StudentDb.GetStudent(context, id);
+            Student? stuToEdit = await context.Students.FindAsync(id);
+
+            if (stuToEdit == null) 
+            {
+                return NotFound();
+            }
 
             //show it on web page
-            return View();
+            return View(stuToEdit);
         }
 
         [HttpPost]
-        public IActionResult Edit(Student p)
+        public async Task<IActionResult> Edit(Student stuModel)
         {
             if (ModelState.IsValid)
             {
-                StudentDb.Update(context, p);
-                ViewData["Message"] = "Product Updated!";
-                return View(p);
+                context.Students.Update(stuModel);
+                await context.SaveChangesAsync();
+
+                ViewData["Message"] = $"{stuModel.Name} was updated successfully!";
+                return RedirectToAction("Index");
             }
             //return view with errors
-            return View(p);
+            return View(stuModel);
         }
 
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            Student p = StudentDb.GetStudent(context, id);
-            return View(p);
+            Student? stuToDelete = await context.Students.FindAsync(id);
+
+            if (stuToDelete == null) 
+            { 
+                return NotFound();
+            }
+            
+            return View(stuToDelete);
         }
 
         [HttpPost, ActionName("Delete")]
-        public IActionResult DeleteConfirm(int id)
+        public async Task<IActionResult> DeleteConfirm(int id)
         {
             //Get Product from database
-            Student p = StudentDb.GetStudent(context, id);
+            Student? stuToDelete = await context.Students.FindAsync(id);
 
-            StudentDb.Delete(context, p);
+            if (stuToDelete != null)
+            {
+                context.Students.Remove(stuToDelete);
+                await context.SaveChangesAsync();
+                TempData["Message"] = stuToDelete.Name + "was deleted successfully!";
+                return RedirectToAction("Index");
+            }
 
+            TempData["Message"] = "This student was already deleted";
             return RedirectToAction("Index");
+        }
+
+        public async Task<IActionResult> Details(int id)
+        {
+            Student? stuDetails = await context.Students.FindAsync(id);
+
+            if (stuDetails == null) 
+            {
+                return NotFound();
+            }
+
+            return View(stuDetails);
         }
     }
 }
