@@ -1,4 +1,6 @@
-﻿namespace CPW219_CRUD_Troubleshooting.Models
+﻿using CPW219_CRUD_Troubleshooting.Data;
+
+namespace CPW219_CRUD_Troubleshooting.Models
 {
     public static class StudentDb
     {
